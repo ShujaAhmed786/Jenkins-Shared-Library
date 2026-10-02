@@ -1,9 +1,11 @@
 def call(Map config = [:]) {
-    def odcTool = config.get('odcInstallation', 'DP-Check')
-    def target  = config.get('target', 'package.json')
+    def target   = config.get('target', 'package.json')
+    def toolName = config.get('toolName', 'DP-Check')
 
     stage('OWASP Dependency-Check') {
-        dependencyCheck additionalArguments: "--scan ${target} --format ALL", odcInstallation: odcTool
-        dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+            dependencyCheck odcInstallation: toolName, additionalArguments: "--scan ${target} --format HTML --format XML --disableNodeAudit false --enableExperimental"
+            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+        }
     }
 }
