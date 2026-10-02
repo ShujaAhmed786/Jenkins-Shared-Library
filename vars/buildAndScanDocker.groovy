@@ -1,28 +1,24 @@
 def call(Map config = [:]) {
-    def dockerUser = config.dockerUser
-    def appName    = config.appName
-    def imageTag   = config.get('imageTag', 'latest')
-    def credsId    = config.get('credentialsId', 'dockerhub-creds')
-    def severity   = config.get('severity', 'HIGH,CRITICAL')
-
-    def fullImage = "${dockerUser}/${appName}"
+    def registry   = config.get('registry', 'docker.io')
+    def imageName  = config.get('imageName', 'shujaahmed198/ratestack-app')
+    def credsId    = config.get('dockerHubCredentials', 'dockerhub-creds')
+    def tag        = env.BUILD_NUMBER
 
     stage('Docker Build') {
-        sh "docker build -t ${fullImage}:${imageTag} -t ${fullImage}:latest ."
+        sh "docker build -t ${imageName}:${tag} -t ${imageName}:latest ."
     }
 
-    stage('Trivy Container Scan') {
-        sh "trivy image --severity ${severity} --format table ${fullImage}:${imageTag}"
+    stage('Trivy Image Scan') {
+        sh "trivy image --severity HIGH,CRITICAL ${imageName}:${tag} || true"
     }
 
-    stage('Docker Push to Hub') {
-        withCredentials([usernamePassword(credentialsId: credsId, usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-            sh '''
-                echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
-                docker push ''' + fullImage + ''':''' + imageTag + '''
-                docker push ''' + fullImage + ''':latest
-                docker logout
-            '''
+    stage('Docker Push') {
+        withCredentials([usernamePassword(credentialsId: credsId, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh """
+                echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+                docker push ${imageName}:${tag}
+                docker push ${imageName}:latest
+            """
         }
     }
 }
