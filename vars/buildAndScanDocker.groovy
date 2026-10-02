@@ -1,14 +1,14 @@
 def call(Map config = [:]) {
-    def registry   = config.get('registry', 'docker.io')
-    def imageName  = config.get('imageName', 'shujaahmed198/ratestack-app')
-    def credsId    = config.get('dockerHubCredentials', 'dockerhub-creds')
-    def tag        = env.BUILD_NUMBER
+    def imageName = config.get('imageName', 'shujaahmed198/ratestack-app')
+    def credsId   = config.get('dockerHubCredentials', 'dockerhub-creds')
+    def tag       = env.BUILD_NUMBER
 
     stage('Docker Build') {
         sh "docker build -t ${imageName}:${tag} -t ${imageName}:latest ."
     }
 
     stage('Trivy Image Scan') {
+        // Runs Trivy; || true prevents breaking build on third-party base layer CVEs if desired
         sh "trivy image --severity HIGH,CRITICAL ${imageName}:${tag} || true"
     }
 
