@@ -4,7 +4,8 @@ def call(Map config = [:]) {
 
     stage('OWASP Dependency-Check') {
         catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-            dependencyCheck odcInstallation: toolName, additionalArguments: "--scan ${target} --format HTML --format XML --disableNodeAudit false --enableExperimental"
+            dependencyCheck odcInstallation: toolName, 
+                            additionalArguments: "--scan ${target} --format HTML --format XML --disableNodeAudit false --enableExperimental"
             dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
         }
     }
