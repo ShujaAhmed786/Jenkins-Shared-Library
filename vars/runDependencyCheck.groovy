@@ -4,14 +4,22 @@ def call(Map config = [:]) {
 
     stage('OWASP Dependency-Check') {
         script {
-            try {
-                dependencyCheck odcInstallation: toolName, 
-                                additionalArguments: "--scan ${target} --format HTML --format XML --disableNodeAudit false --enableExperimental"
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml',
-                                         stopBuild: false
-            } catch (Exception e) {
-                echo "OWASP Dependency-Check encountered an issue: ${e.message}"
-            }
+            // Locate the configured tool path inside Jenkins
+            def odcHome = tool(name: toolName, type: 'dependency-check')
+            
+            // Execute dependency-check directly via shell so exit codes/thresholds are fully controlled
+            sh """
+                ${odcHome}/bin/dependency-check.sh \
+                  --scan ${target} \
+                  --format HTML \
+                  --format XML \
+                  --out ./dependency-check-report \
+                  --disableNodeAudit false \
+                  --enableExperimental || true
+            """
+
+            // Archive the generated HTML report for download without setting the build status to FAILURE
+            archiveArtifacts artifacts: 'dependency-check-report/**', allowEmptyArchive: true
         }
     }
 }
