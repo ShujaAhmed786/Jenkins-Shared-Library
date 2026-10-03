@@ -1,11 +1,18 @@
 def call(Map config = [:]) {
-    def imageName   = config.imageName
-    def clusterName = config.get('clusterName', 'kind')
-    def deployment  = config.get('deployment', 'ratestack-deployment')
-    def namespace   = config.get('namespace', 'default')
+    def clusterName    = config.get('clusterName', 'kind')
+    def deploymentName = config.get('deploymentName', 'ratestack-deployment')
+    def namespace      = config.get('namespace', 'default')
+    def imageName      = config.get('imageName', "shujaahmed198/ratestack-app:${env.BUILD_NUMBER}")
 
     stage('Deploy to Kind') {
-        sh "kind load docker-image ${imageName}:latest --name ${clusterName}"
-        sh "kubectl rollout restart deployment/${deployment} -n ${namespace}"
+        // If loading locally into Kind:
+        sh "kind load docker-image ${imageName} --name ${clusterName}"
+
+        // Update the Kubernetes deployment
+        sh """
+            kubectl set image deployment/${deploymentName} \
+              ${deploymentName}=${imageName} \
+              -n ${namespace} --record || kubectl rollout restart deployment/${deploymentName} -n ${namespace}
+        """
     }
 }
